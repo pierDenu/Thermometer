@@ -11,8 +11,8 @@
 #include "menu/MenuButton.h"
 #include "menu/MenuController.h"
 #include "menu/ChannelListPage.h"
-#include "menu/LimitSelectPage.h"
-#include "menu/LimitValueEditPage.h"
+#include "menu/limit/LimitSelectPage.h"
+#include "menu/limit/LimitValueEditPage.h"
 
 // !!! Адреса LCD зі сканера (0x27 або 0x3F) !!!
 #define LCD_ADDR 0x27
