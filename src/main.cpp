@@ -11,7 +11,8 @@
 #include "menu/MenuButton.h"
 #include "menu/MenuController.h"
 #include "menu/ChannelListPage.h"
-#include "menu/LimitEditPage.h"
+#include "menu/LimitSelectPage.h"
+#include "menu/LimitValueEditPage.h"
 
 // !!! Адреса LCD зі сканера (0x27 або 0x3F) !!!
 #define LCD_ADDR 0x27
@@ -45,13 +46,16 @@ Button btnUp(BTN_UP_PIN);
 Button btnDown(BTN_DOWN_PIN);
 Button btnOk(BTN_OK_PIN);
 
-LimitEditPage editPage1(ch1);
-LimitEditPage editPage2(ch2);
-LimitEditPage editPage3(ch3);
+LimitValueEditPage editValuePage1(ch1);
+LimitSelectPage    selectPage1(ch1, editValuePage1);
+LimitValueEditPage editValuePage2(ch2);
+LimitSelectPage    selectPage2(ch2, editValuePage2);
+LimitValueEditPage editValuePage3(ch3);
+LimitSelectPage    selectPage3(ch3, editValuePage3);
 ChannelListPage::Entry channelEntries[] = {
-    { "K1", &editPage1 },
-    { "K2", &editPage2 },
-    { "K3", &editPage3 },
+    { "K1", &selectPage1 },
+    { "K2", &selectPage2 },
+    { "K3", &selectPage3 },
 };
 ChannelListPage channelListPage(channelEntries, 3);
 MenuController menu(lcd, btnUp, btnDown, btnOk, &channelListPage);
