@@ -17,6 +17,7 @@ private:
 
 protected:
     void drawAll(LiquidCrystal_I2C& lcd) override;
+    bool showEditMarker() const override { return true; }   // "<" справа -> це значення редагується
 
 public:
     explicit LimitValueEditPage(ChannelTemp& channel_);

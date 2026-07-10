@@ -27,9 +27,13 @@ protected:
     // попереднього довшого при перемальовуванні.
     void printField(LiquidCrystal_I2C& lcd, float v);
 
-    // Один рядок межі: курсор "> " зліва + підпис + значення + "<" справа
-    // від обраного поля — обране значення виглядає "затиснутим" між > і <.
+    // Один рядок межі: курсор "> " зліва від обраного поля завжди; "<"
+    // справа — лише коли showEditMarker() каже, що це саме редагування
+    // (LimitSelectPage — просто вибір, без "<"; LimitValueEditPage — так,
+    // щоб позначити "це значення зараз змінюється").
     void drawRow(LiquidCrystal_I2C& lcd, int row, const char* label, float v, bool selected);
+
+    virtual bool showEditMarker() const { return false; }
 
     // Конкретний вигляд сторінки (які значення й яке поле обране) —
     // визначає кожен нащадок; render() лише викликає це.

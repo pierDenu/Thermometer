@@ -15,7 +15,7 @@ void LimitPageBase::drawRow(LiquidCrystal_I2C& lcd, int row, const char* label, 
     lcd.print(selected ? "> " : "  ");
     lcd.print(label);
     printField(lcd, v);
-    lcd.print(selected ? " <" : "  ");
+    lcd.print(selected && showEditMarker() ? " <" : "  ");
 }
 
 // render() кличеться лише по реальних подіях (push/pop/onButton — не за
