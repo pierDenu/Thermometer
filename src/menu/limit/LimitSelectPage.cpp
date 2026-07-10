@@ -1,6 +1,6 @@
 #include "LimitSelectPage.h"
 #include "LimitValueEditPage.h"
-#include "MenuController.h"
+#include "../MenuController.h"
 
 LimitSelectPage::LimitSelectPage(ChannelTemp& channel_, LimitValueEditPage& edit_page_)
     : LimitPageBase(channel_), edit_page(edit_page_) {}

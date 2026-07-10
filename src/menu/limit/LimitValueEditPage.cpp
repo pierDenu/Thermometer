@@ -1,5 +1,5 @@
 #include "LimitValueEditPage.h"
-#include "MenuController.h"
+#include "../MenuController.h"
 
 LimitValueEditPage::LimitValueEditPage(ChannelTemp& channel_)
     : LimitPageBase(channel_), editing_value(0) {}

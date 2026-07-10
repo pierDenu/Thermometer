@@ -9,8 +9,8 @@
 // ============================================================
 #pragma once
 
-#include "MenuPage.h"
-#include "../ChannelTemp.h"
+#include "../MenuPage.h"
+#include "../../ChannelTemp.h"
 
 class LimitPageBase : public MenuPage {
 public:
