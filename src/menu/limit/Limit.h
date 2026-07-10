@@ -39,14 +39,30 @@ protected:
 
     virtual bool showEditMarker() const { return false; }
 
+    // Чи показувати курсор на полі f — за замовчуванням "це і є обране
+    // поле". LimitSelectPage перевизначає, щоб погасити курсор на Low/
+    // High, коли курсор насправді стоїть на пункті "Save" (рядок 2).
+    virtual bool isFieldSelected(Field f) const { return field == f; }
+
+    // Чи курсор зараз на пункті "Save" (рядок 2). За замовчуванням false —
+    // рядок і надалі малюється (для однакового вигляду обох сторінок),
+    // просто без курсора; лише LimitSelectPage може зробити його true.
+    virtual bool isSaveSelected() const { return false; }
+
     // Яке значення показувати для поля f — за замовчуванням поточне з
     // channel; LimitValueEditPage підміняє його на editing_value для
-    // поля, що зараз редагується. Завдяки цьому render() тут спільний
-    // для обох сторінок, без окремого drawAll() на кожну.
+    // поля, що зараз редагується.
     virtual float valueFor(Field f) const;
 
+    // Рядки 0/1 (Low/High) — спільні для обох сторінок.
+    void drawLimitRows(LiquidCrystal_I2C& lcd);
+
+    // Рядок 2 ("Save") — теж спільний, щоб обидві сторінки мали однаковий
+    // каркас і перехід між ними виглядав безшовно.
+    void drawSaveRow(LiquidCrystal_I2C& lcd);
+
 public:
-    void render(LiquidCrystal_I2C& lcd) override final;
+    void render(LiquidCrystal_I2C& lcd) override;
 };
 
 // ---- LimitValueEditPage ----------------------------------------------
@@ -83,6 +99,11 @@ public:
 class LimitSelectPage : public LimitPageBase {
 private:
     LimitValueEditPage& edit_page;   // куди push() по OK
+    bool on_save;                    // курсор на пункті "Save" (рядок 2), а не на Low/High
+
+protected:
+    bool isFieldSelected(Field f) const override { return !on_save && field == f; }
+    bool isSaveSelected() const override { return on_save; }
 
 public:
     LimitSelectPage(ChannelTemp& channel_, LimitValueEditPage& edit_page_);
