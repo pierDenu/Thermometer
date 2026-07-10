@@ -21,10 +21,15 @@ void LimitPageBase::drawRow(LiquidCrystal_I2C& lcd, int row, const char* label, 
     lcd.print(selected && showEditMarker() ? " <" : "  ");
 }
 
+float LimitPageBase::valueFor(Field f) const {
+    return (f == Field::Low) ? channel.get_low_limit() : channel.get_high_limit();
+}
+
 // render() кличеться лише по реальних подіях (push/pop/onButton — не за
 // таймером), тому діф-кеш тут не потрібен: завжди можна малювати наново.
 void LimitPageBase::render(LiquidCrystal_I2C& lcd) {
-    drawAll(lcd);
+    drawRow(lcd, 0, "Nyzhnya:  ", valueFor(Field::Low),  field == Field::Low);
+    drawRow(lcd, 1, "Verkhnya: ", valueFor(Field::High), field == Field::High);
 }
 
 // ---- LimitValueEditPage ----------------------------------------------
@@ -37,9 +42,8 @@ void LimitValueEditPage::beginEditing(Field f) {
     editing_value = (f == Field::Low) ? channel.get_low_limit() : channel.get_high_limit();
 }
 
-void LimitValueEditPage::drawAll(LiquidCrystal_I2C& lcd) {
-    drawRow(lcd, 0, "Nyzhnya:  ", field == Field::Low  ? editing_value : channel.get_low_limit(),  field == Field::Low);
-    drawRow(lcd, 1, "Verkhnya: ", field == Field::High ? editing_value : channel.get_high_limit(), field == Field::High);
+float LimitValueEditPage::valueFor(Field f) const {
+    return (f == field) ? editing_value : LimitPageBase::valueFor(f);
 }
 
 void LimitValueEditPage::onButton(MenuButton b, MenuController& nav) {
@@ -70,11 +74,6 @@ LimitSelectPage::LimitSelectPage(ChannelTemp& channel_, LimitValueEditPage& edit
 
 void LimitSelectPage::onEnter() {
     field = Field::Low;   // щоразу при вході курсор на нижній межі
-}
-
-void LimitSelectPage::drawAll(LiquidCrystal_I2C& lcd) {
-    drawRow(lcd, 0, "Nyzhnya:  ", channel.get_low_limit(),  field == Field::Low);
-    drawRow(lcd, 1, "Verkhnya: ", channel.get_high_limit(), field == Field::High);
 }
 
 void LimitSelectPage::onButton(MenuButton b, MenuController& nav) {

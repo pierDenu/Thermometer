@@ -39,9 +39,11 @@ protected:
 
     virtual bool showEditMarker() const { return false; }
 
-    // Конкретний вигляд сторінки (які значення й яке поле обране) —
-    // визначає кожен нащадок; render() лише викликає це.
-    virtual void drawAll(LiquidCrystal_I2C& lcd) = 0;
+    // Яке значення показувати для поля f — за замовчуванням поточне з
+    // channel; LimitValueEditPage підміняє його на editing_value для
+    // поля, що зараз редагується. Завдяки цьому render() тут спільний
+    // для обох сторінок, без окремого drawAll() на кожну.
+    virtual float valueFor(Field f) const;
 
 public:
     void render(LiquidCrystal_I2C& lcd) override final;
@@ -59,8 +61,8 @@ private:
     float editing_value;   // значення під час редагування (ще НЕ записане в channel)
 
 protected:
-    void drawAll(LiquidCrystal_I2C& lcd) override;
     bool showEditMarker() const override { return true; }   // "<" справа -> це значення редагується
+    float valueFor(Field f) const override;                 // поле, що редагується -> editing_value
 
 public:
     explicit LimitValueEditPage(ChannelTemp& channel_);
@@ -81,9 +83,6 @@ public:
 class LimitSelectPage : public LimitPageBase {
 private:
     LimitValueEditPage& edit_page;   // куди push() по OK
-
-protected:
-    void drawAll(LiquidCrystal_I2C& lcd) override;
 
 public:
     LimitSelectPage(ChannelTemp& channel_, LimitValueEditPage& edit_page_);
