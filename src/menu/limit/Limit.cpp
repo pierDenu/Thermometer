@@ -80,23 +80,36 @@ void LimitValueEditPage::onButton(MenuButton b, MenuController& nav) {
 
 // ---- LimitSelectPage --------------------------------------------------
 
+LimitPageBase::Field LimitSelectPage::fieldForCursor(int c) {
+    switch (c) {
+        case 0:  return Field::Low;
+        case 1:  return Field::High;
+        default: return Field::Save;
+    }
+}
+
 LimitSelectPage::LimitSelectPage(ChannelTemp& channel_, LimitValueEditPage& edit_page_)
-    : LimitPageBase(channel_), edit_page(edit_page_), on_save(false) {}
+    : LimitPageBase(channel_), edit_page(edit_page_), cursor(0), save_requested(false) {}
 
 void LimitSelectPage::onEnter() {
+    cursor = 0;
     field = Field::Low;   // щоразу при вході курсор на нижній межі
-    on_save = false;
 }
 
 void LimitSelectPage::onButton(MenuButton b, MenuController& nav) {
-    // лише 2 поля -> Up/Down однаково перемикають між ними
-    if (b == MenuButton::Up || b == MenuButton::Down) {
-        field = (field == Field::Low) ? Field::High : Field::Low;
-    }
+    const int CURSOR_COUNT = 3;   // Low, High, Save
+    if (b == MenuButton::Down) cursor = (cursor + 1) % CURSOR_COUNT;
+    if (b == MenuButton::Up)   cursor = (cursor - 1 + CURSOR_COUNT) % CURSOR_COUNT;
+    field = fieldForCursor(cursor);   // field лишається тим, що читає спільний render() базового класу
 
     if (b == MenuButton::Ok) {
-        edit_page.beginEditing(field);
-        nav.push(&edit_page);
+        if (field == Field::Save) {
+            save_requested = true;   // main.cpp побачить це щоцикл і сам запише в EEPROM
+            nav.pop();                // збереження підтверджено -> назад на ChannelListPage
+        } else {
+            edit_page.beginEditing(field);   // тут field гарантовано Low або High
+            nav.push(&edit_page);
+        }
     }
 
     if (b == MenuButton::Back) nav.pop();   // вихід зі сторінки цілком

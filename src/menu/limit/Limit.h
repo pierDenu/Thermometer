@@ -18,7 +18,10 @@
 // ---- LimitPageBase --------------------------------------------------
 class LimitPageBase : public MenuPage {
 public:
-    enum class Field { Low, High };
+    // Save — "віртуальне" поле лише для LimitSelectPage (курсор на пункті
+    // Save, рядок 2). LimitValueEditPage його ніколи не отримує —
+    // beginEditing() і onButton() там завжди мають справу лише з Low/High.
+    enum class Field { Low, High, Save };
 
 protected:
     ChannelTemp& channel;   // чиї межі показуємо/редагуємо
@@ -40,8 +43,8 @@ protected:
     virtual bool showEditMarker() const { return false; }
 
     // Чи показувати курсор на полі f — за замовчуванням "це і є обране
-    // поле". LimitSelectPage перевизначає, щоб погасити курсор на Low/
-    // High, коли курсор насправді стоїть на пункті "Save" (рядок 2).
+    // поле". Коли field == Save (LimitSelectPage), це саме по собі дає
+    // false і для Low, і для High — окремого перевизначення не треба.
     virtual bool isFieldSelected(Field f) const { return field == f; }
 
     // Чи курсор зараз на пункті "Save" (рядок 2). За замовчуванням false —
@@ -99,15 +102,26 @@ public:
 class LimitSelectPage : public LimitPageBase {
 private:
     LimitValueEditPage& edit_page;   // куди push() по OK
-    bool on_save;                    // курсор на пункті "Save" (рядок 2), а не на Low/High
+    int cursor;                      // 0..2 -> позиція курсора (Low/High/Save)
+    bool save_requested;             // true одразу після OK на "Save" — до clearSaveRequest()
+
+    // Мапить позицію курсора на Field. Окрема функція, а не ланцюжок
+    // if/else if, — Up/Down рухають cursor по колу через % (як у
+    // ChannelListPage), а field лише синхронізується під нього.
+    static Field fieldForCursor(int c);
 
 protected:
-    bool isFieldSelected(Field f) const override { return !on_save && field == f; }
-    bool isSaveSelected() const override { return on_save; }
+    bool isSaveSelected() const override { return cursor == 2; }
 
 public:
     LimitSelectPage(ChannelTemp& channel_, LimitValueEditPage& edit_page_);
 
     void onEnter() override;
     void onButton(MenuButton b, MenuController& nav) override;
+
+    // Ця сторінка нічого не знає про EEPROM — вона лише сигналізує момент
+    // "Save" підняттям прапорця; main.cpp щоцикл перевіряє його й сам
+    // кличе EepromLimitStore::save(), тоді скидає прапорець назад.
+    bool saveRequested() const { return save_requested; }
+    void clearSaveRequest() { save_requested = false; }
 };
