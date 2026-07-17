@@ -6,6 +6,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <EncButton.h>
 #include "ChannelTemp.h"
+#include "EepromLimitStore.h"
 #include "MonitorRow.h"
 #include "Timer.h"
 #include "menu/MenuButton.h"
@@ -20,11 +21,6 @@ LiquidCrystal_I2C lcd(LCD_ADDR, 20, 4);
 
 const int NUM_CHANNELS = 3;
 
-// Все про один канал разом: датчик+межі (ChannelTemp), обидві сторінки
-// редагування меж і рядок LCD у режимі моніторингу. Без цього довелось би
-// тримати editValuePageN/selectPageN/rowN окремими глобалами на кожен
-// канал — N копій однакового коду замість N рядків даних (як уже зроблено
-// для channelEntries).
 struct ChannelSlot {
     ChannelTemp channel;
     LimitValueEditPage edit_page;
@@ -32,11 +28,8 @@ struct ChannelSlot {
     MonitorRow row;
     const char* label;
 
-    // edit_page/select_page посилаються на "сусідні" поля цього ж об'єкта —
-    // порядок ІНІЦІАЛІЗАЦІЇ визначає порядок ОГОЛОШЕННЯ полів вище (не
-    // порядок нижче), тому channel має лишатись першим полем. row від
-    // сусідніх полів не залежить (бере lcd/label_/lcd_row напряму з
-    // параметрів конструктора), тому для нього це не критично.
+    // Порядок ІНІЦІАЛІЗАЦІЇ = порядок ОГОЛОШЕННЯ полів вище (не порядок
+    // нижче) — channel має лишатись першим полем.
     ChannelSlot(int pin, float low, float high, const char* label_,
                 LiquidCrystal_I2C& lcd, int lcd_row)
         : channel(pin, low, high),
@@ -47,27 +40,21 @@ struct ChannelSlot {
     {}
 };
 
-// Піни термісторів (аналогові входи Nano). Межі — тимчасові значення
-// за замовчуванням (FR-3/NFR-1), поки немає введення з кнопок.
-// Рядки LCD 0..2 — по одному каналу; рядок 3 — під заголовок (FR-2).
 ChannelSlot slots[NUM_CHANNELS] = {
     ChannelSlot(A0, 10.0, 30.0, "K1", lcd, 0),
     ChannelSlot(A1, 10.0, 30.0, "K2", lcd, 1),
     ChannelSlot(A2, 10.0, 30.0, "K3", lcd, 2),
 };
 
-// FR-1: опитування каналів не рідше 2 рази/сек -> інтервал 500 мс.
 Timer measure_timer(500);
 
-// ---- Режим налаштування (розділ 4-А) ----------------------------------
+const int EEPROM_ADDR_STRIDE = 16;   // з запасом більше за sizeof(Record) в EepromLimitStore.cpp
+
 // !!! ТИМЧАСОВІ піни кнопок — постав свої під реальне підключення !!!
-// Лише 3 кнопки: "Назад" — це подвійний клік OK, окремої кнопки не треба.
 #define BTN_UP_PIN   2
 #define BTN_DOWN_PIN 3
 #define BTN_OK_PIN   4
 
-// Button(pin) за замовчуванням: INPUT_PULLUP, активний рівень LOW —
-// точно відповідає підключенню "кнопка на GND" без зовнішніх резисторів.
 Button btnUp(BTN_UP_PIN);
 Button btnDown(BTN_DOWN_PIN);
 Button btnOk(BTN_OK_PIN);
@@ -84,7 +71,7 @@ void setup() {
     Serial.begin(115200);
     lcd.init();
     lcd.backlight();
-    MonitorRow::registerChars(lcd);   // CGRAM-стрілки ^/v для drawStatus()
+    MonitorRow::registerChars(lcd);
 
     lcd.setCursor(0, 3);
     lcd.print("== TEMP MONITOR ==");
@@ -96,20 +83,22 @@ void loop() {
     }
 
     bool was_in_menu = !menu.isEmpty();
-    menu.update();   // сам тікає кнопки; вирішує вхід у меню / навігацію всередині
+    menu.update();
+
+    for (int i = 0; i < NUM_CHANNELS; i++) {
+        if (slots[i].select_page.saveRequested()) {
+            EepromLimitStore::save(slots[i].channel, i * EEPROM_ADDR_STRIDE);
+            slots[i].select_page.clearSaveRequest();
+        }
+    }
 
     if (menu.isEmpty()) {
         if (was_in_menu) {
-            // щойно вийшли з меню — MonitorRow-кеш застарілий відносно щойно
-            // очищеного екрана, тому перемальовуємо статику наново
-            lcd.clear();
+            lcd.clear();   // MonitorRow-кеш застарілий відносно щойно очищеного екрана
             for (int i = 0; i < NUM_CHANNELS; i++) {
                 slots[i].row.drawFrame(slots[i].channel.get_low_limit(), slots[i].channel.get_high_limit());
             }
         } else {
-            // render() викликається щоцикл — так власний таймер блимання
-            // кожного рядка (MonitorRow) реагує вчасно, незалежно від
-            // того, як часто реально оновлюються виміри.
             for (int i = 0; i < NUM_CHANNELS; i++) {
                 ChannelTemp& ch = slots[i].channel;
                 slots[i].row.render(ch.get_temp(), ch.status(), ch.get_low_limit(), ch.get_high_limit());
