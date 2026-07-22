@@ -69,6 +69,12 @@ MenuController menu(lcd, btnUp, btnDown, btnOk, &channelListPage);
 
 void setup() {
     Serial.begin(115200);
+
+    for (int i = 0; i < NUM_CHANNELS; i++) {
+        EepromLimitStore::load(slots[i].channel, i * EEPROM_ADDR_STRIDE);
+        slots[i].channel.mark_saved();
+    }
+
     lcd.init();
     lcd.backlight();
     MonitorRow::registerChars(lcd);
@@ -89,6 +95,7 @@ void loop() {
         if (slots[i].select_page.saveRequested()) {
             EepromLimitStore::save(slots[i].channel, i * EEPROM_ADDR_STRIDE);
             slots[i].select_page.clearSaveRequest();
+            slots[i].channel.mark_saved();
         }
     }
 
