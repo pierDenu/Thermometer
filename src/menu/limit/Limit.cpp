@@ -59,7 +59,8 @@ void LimitPageBase::drawEditMarker(LiquidCrystal_I2C& lcd) {
 
 void LimitPageBase::drawSaveRow(LiquidCrystal_I2C& lcd) {
     lcd.setCursor(LABEL_COL, 2);
-    lcd.print("Save");
+    const char* buf = save_available() ? "Save" : "Nothing to save";
+    lcd.print(buf);
 }
 
 void LimitPageBase::render(LiquidCrystal_I2C& lcd) {
@@ -122,7 +123,7 @@ void LimitSelectPage::onEnter() {
 }
 
 void LimitSelectPage::onButton(MenuButton b, MenuController& nav) {
-    const int CURSOR_COUNT = 3;   // Low, High, Save
+    const int CURSOR_COUNT = save_available() ? 3 : 2;   // Low, High, Save
     if (b == MenuButton::Down) cursor = (cursor + 1) % CURSOR_COUNT;
     if (b == MenuButton::Up)   cursor = (cursor - 1 + CURSOR_COUNT) % CURSOR_COUNT;
     field = fieldForCursor(cursor);   // field лишається тим, що читає спільний render() базового класу

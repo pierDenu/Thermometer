@@ -31,7 +31,7 @@ protected:
     void drawEditMarker(LiquidCrystal_I2C& lcd);
 
     bool isFieldDirty(Field f) const;
-
+    bool save_available() const { return isFieldDirty(Field::Low) || isFieldDirty(Field::High); }
 public:
     void render(LiquidCrystal_I2C& lcd) override;   // сам чистить екран — без цього курсор лишав би "привида"
 };
