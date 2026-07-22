@@ -9,6 +9,7 @@
 #include "EepromLimitStore.h"
 #include "MonitorRow.h"
 #include "Timer.h"
+#include "Buzzer.h"
 #include "menu/MenuButton.h"
 #include "menu/MenuController.h"
 #include "menu/ChannelListPage.h"
@@ -54,10 +55,16 @@ const int EEPROM_ADDR_STRIDE = 16;   // з запасом більше за size
 #define BTN_UP_PIN   2
 #define BTN_DOWN_PIN 3
 #define BTN_OK_PIN   4
+#define BTN_MUTE_PIN 5   // FR-4: окрема кнопка "вимкнути сигнал" (acknowledge), поза меню
 
 Button btnUp(BTN_UP_PIN);
 Button btnDown(BTN_DOWN_PIN);
 Button btnOk(BTN_OK_PIN);
+Button btnMute(BTN_MUTE_PIN);
+
+// !!! ТИМЧАСОВИЙ пін бузера — постав свій під реальне підключення !!!
+#define BUZZER_PIN 6
+Buzzer buzzer(BUZZER_PIN);
 
 ChannelListPage::Entry channelEntries[NUM_CHANNELS] = {
     { slots[0].label, &slots[0].select_page },
@@ -86,6 +93,23 @@ void setup() {
 void loop() {
     if (measure_timer.ready()) {
         for (int i = 0; i < NUM_CHANNELS; i++) slots[i].channel.update();
+    }
+
+    // status() тут викликається безумовно (не лише коли на екрані монітор),
+    // бо FR-4 вимагає, щоб сигналізація й гістерезис тривоги жили і поки
+    // користувач у меню налаштувань, а не лише на головному екрані.
+    bool any_unacked_alarm = false;
+    for (int i = 0; i < NUM_CHANNELS; i++) {
+        slots[i].channel.status();
+        if (slots[i].channel.needs_sound()) any_unacked_alarm = true;
+    }
+    if (any_unacked_alarm) buzzer.alarmOn();
+    else                   buzzer.alarmOff();
+    buzzer.update();
+
+    btnMute.tick();
+    if (btnMute.press()) {   // глушить звук ПОТОЧНИХ тривог; нова (FR-4) увімкне сигнал знову
+        for (int i = 0; i < NUM_CHANNELS; i++) slots[i].channel.acknowledge_sound();
     }
 
     bool was_in_menu = !menu.isEmpty();

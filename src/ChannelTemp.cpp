@@ -15,7 +15,8 @@ ChannelTemp::ChannelTemp(int pin, float low, float high)
       curr_temp(0),
       last_saved_low(low),
       last_saved_high(high),
-      state(Status::Ok)
+      state(Status::Ok),
+      sound_acknowledged(true)   // на старті тривоги нема -> нічого й глушити
 {
   // тіло вже може бути порожнім
 }
@@ -46,6 +47,8 @@ void ChannelTemp::update() {
 // Стейнхарта-Гарта — у нефізичне значення (curr_temp << реального мінімуму) —
 // це й трактуємо як несправність датчика.
 Status ChannelTemp::status() {
+    Status prev = state;
+
     if (curr_temp < FAULT_TEMP_C) state = Status::Error;
     if (curr_temp >= FAULT_TEMP_C && state == Status::Error) state = Status::Ok;
 
@@ -53,6 +56,11 @@ Status ChannelTemp::status() {
     if (state == Status::TooLow  && curr_temp >= low_limit  + HYSTERESIS_C) state = Status::Ok;
     if (state == Status::Ok && curr_temp > high_limit) state = Status::TooHigh;
     if (state == Status::Ok && curr_temp < low_limit)  state = Status::TooLow;
+
+    // Новий алярм (або зміна його типу, напр. TooHigh -> Error) -> звук знову
+    // потрібен, навіть якщо попередню тривогу вже заглушили кнопкою Mute.
+    if (state != Status::Ok && state != prev) sound_acknowledged = false;
+
     return state;
 }
 
