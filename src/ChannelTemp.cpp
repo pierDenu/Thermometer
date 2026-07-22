@@ -13,6 +13,8 @@ ChannelTemp::ChannelTemp(int pin, float low, float high)
       low_limit(low),
       high_limit(high),
       curr_temp(0),
+      last_saved_low(low),
+      last_saved_high(high),
       state(Status::Ok)
 {
   // тіло вже може бути порожнім
