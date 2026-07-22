@@ -13,6 +13,7 @@
 
 #include <EncButton.h>
 #include "MenuPage.h"
+#include "../Timer.h"
 
 class MenuController {
 private:
@@ -25,6 +26,8 @@ private:
     Button& btn_down;
     Button& btn_ok;
     MenuPage* entry_page;   // куди push() при довгому утриманні OK поза меню
+
+    Timer idle_timer;   // бездіяльність у меню -> автовихід (розділ 4-А специфікації)
 
     MenuButton resolveButton();   // з поточних тіків кнопок -> яка menu-дія (лише всередині меню)
 

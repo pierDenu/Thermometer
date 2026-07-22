@@ -1,5 +1,9 @@
 #include "MenuController.h"
 
+namespace {
+    const unsigned long IDLE_TIMEOUT_MS = 20000;   // розділ 4-А специфікації: автовихід за бездіяльності
+}
+
 MenuController::MenuController(LiquidCrystal_I2C& lcd_, Button& btn_up_, Button& btn_down_,
                                  Button& btn_ok_, MenuPage* entry_page_)
     : depth(0),
@@ -7,13 +11,15 @@ MenuController::MenuController(LiquidCrystal_I2C& lcd_, Button& btn_up_, Button&
       btn_up(btn_up_),
       btn_down(btn_down_),
       btn_ok(btn_ok_),
-      entry_page(entry_page_)
+      entry_page(entry_page_),
+      idle_timer(IDLE_TIMEOUT_MS)
 {
     btn_ok.setHoldTimeout(1000);   // довге утримання OK (поза меню) -> вхід у меню
 }
 
 void MenuController::push(MenuPage* page) {
     if (depth >= MAX_DEPTH) return;   // запобіжник; на MVP-глибині ніколи не спрацює
+    idle_timer.reset();   // вхід у сторінку — це теж активність
     stack[depth++] = page;
     lcd.clear();
     page->onEnter();
@@ -62,7 +68,13 @@ void MenuController::update() {
     }
 
     MenuButton b = resolveButton();
-    if (b == MenuButton::None) return;   // нічого не сталось -> нема сенсу перемальовувати щоцикл
+    if (b == MenuButton::None) {
+        // бездіяльність у меню -> автовихід (незбережене відхиляється саме тим,
+        // що жодна сторінка не встигла отримати свій OK/Save)
+        if (idle_timer.ready()) depth = 0;
+        return;
+    }
+    idle_timer.reset();
 
     stack[depth - 1]->onButton(b, *this);   // сторінка сама мутує стан і/або push/pop
     if (depth > 0) stack[depth - 1]->render(lcd);   // рендер централізовано тут
