@@ -5,7 +5,7 @@
 namespace {
     const int LABEL_COL     = 2;    // 0-1 лишаються під "> " з drawCursor()
     const int LABEL_WIDTH   = 10;   // ширина "Nyzhnya:  " / "Verkhnya: " (вирівняні однаково)
-    const int VALUE_WIDTH   = 5;    // printField() завжди друкує 5 символів (dtostrf(v,5,1,...))
+    const int VALUE_WIDTH   = 6;    // printField() завжди друкує 5 символів (dtostrf(v,5,1,...))
     const int VALUE_END_COL = LABEL_COL + LABEL_WIDTH + VALUE_WIDTH;   // де починається " <"
 }
 
@@ -14,20 +14,17 @@ namespace {
 LimitPageBase::LimitPageBase(ChannelTemp& channel_)
     : channel(channel_), field(Field::Low), cursor(0) {}
 
-void LimitPageBase::printField(LiquidCrystal_I2C& lcd, float v) {
-    char buf[7];
-    dtostrf(v, 5, 1, buf);
-    lcd.print(buf);
-}
-
-void LimitPageBase::drawRow(LiquidCrystal_I2C& lcd, int row, const char* label, float v) {
-    lcd.setCursor(LABEL_COL, row);
-    lcd.print(label);
-    printField(lcd, v);
-}
 
 float LimitPageBase::valueFor(Field f) const {
     return (f == Field::Low) ? channel.get_low_limit() : channel.get_high_limit();
+}
+
+bool LimitPageBase::isFieldDirty(Field f) const
+{
+    if (f == Field::Low)
+        return channel.is_low_dirty();
+
+    return channel.is_high_dirty();
 }
 
 void LimitPageBase::drawCursor(LiquidCrystal_I2C& lcd) {
@@ -37,15 +34,28 @@ void LimitPageBase::drawCursor(LiquidCrystal_I2C& lcd) {
     }
 }
 
+void LimitPageBase::drawRow(LiquidCrystal_I2C& lcd, int row, const char* label, Field f) {
+    lcd.setCursor(LABEL_COL, row);
+    lcd.print(label);
+    drawValue(lcd, f);
+}
+
+void LimitPageBase::drawValue(LiquidCrystal_I2C& lcd, Field f) {
+    char buf[8];
+    dtostrf(valueFor(f), 5, 1, buf);
+
+    size_t len = strlen(buf);
+    buf[len] = isFieldDirty(f) ? '*' : ' ';
+    buf[len + 1] = '\0';
+    lcd.print(buf);
+}
+
+
 void LimitPageBase::drawEditMarker(LiquidCrystal_I2C& lcd) {
     lcd.setCursor(VALUE_END_COL, cursor);
     lcd.print(" <");
 }
 
-void LimitPageBase::drawLimitRows(LiquidCrystal_I2C& lcd) {
-    drawRow(lcd, 0, "Nyzhnya:  ", valueFor(Field::Low));
-    drawRow(lcd, 1, "Verkhnya: ", valueFor(Field::High));
-}
 
 void LimitPageBase::drawSaveRow(LiquidCrystal_I2C& lcd) {
     lcd.setCursor(LABEL_COL, 2);
@@ -53,7 +63,8 @@ void LimitPageBase::drawSaveRow(LiquidCrystal_I2C& lcd) {
 }
 
 void LimitPageBase::render(LiquidCrystal_I2C& lcd) {
-    drawLimitRows(lcd);
+    drawRow(lcd, 0, "Nyzhnya:  ", Field::Low);
+    drawRow(lcd, 1, "Verkhnya: ", Field::High);
     drawSaveRow(lcd);
     drawCursor(lcd);
     if (showEditMarker()) drawEditMarker(lcd);

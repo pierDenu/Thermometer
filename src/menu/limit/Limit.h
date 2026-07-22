@@ -20,17 +20,17 @@ protected:
 
     explicit LimitPageBase(ChannelTemp& channel_);
 
-    void printField(LiquidCrystal_I2C& lcd, float v);   // фіксовані 5 символів, без "привида" від коротшого числа
-
-    void drawRow(LiquidCrystal_I2C& lcd, int row, const char* label, float v);
+    void drawValue(LiquidCrystal_I2C& lcd, Field f);   // фіксовані 5 символів, без "привида" від коротшого числа
+    void drawRow(LiquidCrystal_I2C& lcd, int row, const char* label, Field f);
 
     virtual bool showEditMarker() const { return false; }
     virtual float valueFor(Field f) const;
 
-    void drawLimitRows(LiquidCrystal_I2C& lcd);
     void drawSaveRow(LiquidCrystal_I2C& lcd);
     void drawCursor(LiquidCrystal_I2C& lcd);
     void drawEditMarker(LiquidCrystal_I2C& lcd);
+
+    bool isFieldDirty(Field f) const;
 
 public:
     void render(LiquidCrystal_I2C& lcd) override;   // сам чистить екран — без цього курсор лишав би "привида"
@@ -59,7 +59,6 @@ class LimitSelectPage : public LimitPageBase {
 private:
     LimitValueEditPage& edit_page;
     bool save_requested;   // true після OK на "Save" — main.cpp сам кличе EepromLimitStore і скидає прапорець
-
     static Field fieldForCursor(int c);
 
 public:
