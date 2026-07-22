@@ -38,11 +38,16 @@ bool MenuController::isEmpty() const {
 // Ok/Back лежать на одній кнопці — розрізняються кількістю кліків. hasClicks(1/2)
 // чекає таймаут кліку (~500мс), щоб відрізнити одиночний клік від початку
 // подвійного — трохи повільніше за окрему кнопку "Назад", зате без 4-ї кнопки.
+//
+// Up/Down реагують і на press() (клік), і на step() — EncButton сам генерує
+// step() періодично, поки кнопка затиснена довше hold-таймауту, тож утримання
+// саме повторює Up/Down без окремого таймера тут. Сторінки, яким треба
+// пришвидшення (LimitValueEditPage), рахують послідовні повтори самі.
 MenuButton MenuController::resolveButton() {
     if (btn_ok.hasClicks(2))   return MenuButton::Back;
     if (btn_ok.hasClicks(1))   return MenuButton::Ok;
-    if (btn_up.press())        return MenuButton::Up;
-    if (btn_down.press())      return MenuButton::Down;
+    if (btn_up.press()   || btn_up.step())   return MenuButton::Up;
+    if (btn_down.press() || btn_down.step()) return MenuButton::Down;
     return MenuButton::None;
 }
 
