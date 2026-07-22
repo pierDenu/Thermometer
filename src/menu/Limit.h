@@ -5,8 +5,8 @@
 // ============================================================
 #pragma once
 
-#include "../MenuPage.h"
-#include "../../ChannelTemp.h"
+#include "MenuPage.h"
+#include "../ChannelTemp.h"
 
 // ---- LimitPageBase --------------------------------------------------
 class LimitPageBase : public MenuPage {
