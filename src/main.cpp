@@ -90,14 +90,16 @@ void setup() {
     lcd.print("== TEMP MONITOR ==");
 }
 
-void loop() {
+static void updateSensors() {
     if (measure_timer.ready()) {
         for (int i = 0; i < NUM_CHANNELS; i++) slots[i].channel.update();
     }
+}
 
-    // status() тут викликається безумовно (не лише коли на екрані монітор),
-    // бо FR-4 вимагає, щоб сигналізація й гістерезис тривоги жили і поки
-    // користувач у меню налаштувань, а не лише на головному екрані.
+// status() тут викликається безумовно (не лише коли на екрані монітор),
+// бо FR-4 вимагає, щоб сигналізація й гістерезис тривоги жили і поки
+// користувач у меню налаштувань, а не лише на головному екрані.
+static void updateAlarm() {
     bool any_unacked_alarm = false;
     for (int i = 0; i < NUM_CHANNELS; i++) {
         slots[i].channel.status();
@@ -111,10 +113,17 @@ void loop() {
     if (btnMute.press()) {   // глушить звук ПОТОЧНИХ тривог; нова (FR-4) увімкне сигнал знову
         for (int i = 0; i < NUM_CHANNELS; i++) slots[i].channel.acknowledge_sound();
     }
+}
 
+// Повертає, чи були в меню ДО цього тіку — рендер монітора нижче має це знати,
+// щоб вирішити: перемалювати рамку цілком чи оновити лише те, що змінилось.
+static bool updateMenu() {
     bool was_in_menu = !menu.isEmpty();
     menu.update();
+    return was_in_menu;
+}
 
+static void persistRequestedSaves() {
     for (int i = 0; i < NUM_CHANNELS; i++) {
         if (slots[i].select_page.saveRequested()) {
             EepromLimitStore::save(slots[i].channel, i * EEPROM_ADDR_STRIDE);
@@ -122,18 +131,28 @@ void loop() {
             slots[i].channel.mark_saved();
         }
     }
+}
 
-    if (menu.isEmpty()) {
-        if (was_in_menu) {
-            lcd.clear();   // MonitorRow-кеш застарілий відносно щойно очищеного екрана
-            for (int i = 0; i < NUM_CHANNELS; i++) {
-                slots[i].row.drawFrame(slots[i].channel.get_low_limit(), slots[i].channel.get_high_limit());
-            }
-        } else {
-            for (int i = 0; i < NUM_CHANNELS; i++) {
-                ChannelTemp& ch = slots[i].channel;
-                slots[i].row.render(ch.get_temp(), ch.status(), ch.get_low_limit(), ch.get_high_limit());
-            }
+static void renderMonitorScreen(bool was_in_menu) {
+    if (!menu.isEmpty()) return;
+
+    if (was_in_menu) {
+        lcd.clear();   // MonitorRow-кеш застарілий відносно щойно очищеного екрана
+        for (int i = 0; i < NUM_CHANNELS; i++) {
+            slots[i].row.drawFrame(slots[i].channel.get_low_limit(), slots[i].channel.get_high_limit());
+        }
+    } else {
+        for (int i = 0; i < NUM_CHANNELS; i++) {
+            ChannelTemp& ch = slots[i].channel;
+            slots[i].row.render(ch.get_temp(), ch.status(), ch.get_low_limit(), ch.get_high_limit());
         }
     }
+}
+
+void loop() {
+    updateSensors();
+    updateAlarm();
+    bool was_in_menu = updateMenu();
+    persistRequestedSaves();
+    renderMonitorScreen(was_in_menu);
 }
