@@ -10,7 +10,6 @@
 #include "MonitorRow.h"
 #include "Timer.h"
 #include "Buzzer.h"
-#include "menu/MenuButton.h"
 #include "menu/MenuController.h"
 #include "menu/ChannelListPage.h"
 #include "menu/Limit.h"
@@ -49,7 +48,7 @@ ChannelSlot slots[NUM_CHANNELS] = {
 
 Timer measure_timer(500);
 
-const int EEPROM_ADDR_STRIDE = 16;   // з запасом більше за sizeof(Record) в EepromLimitStore.cpp
+const int EEPROM_ADDR_STRIDE = 16;   // з запасом більше за sizeof(Record) в EepromLimitStore.h
 
 // !!! ТИМЧАСОВІ піни кнопок — постав свої під реальне підключення !!!
 #define BTN_UP_PIN   2
