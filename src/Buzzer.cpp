@@ -1,32 +1,33 @@
 #include "Buzzer.h"
 
 namespace {
-    const unsigned int FREQ_LOW  = 3000;   // Гц — біля резонансу п'єзо (розділ 5 специфікації)
-    const unsigned int FREQ_HIGH = 3500;
-    const unsigned long WARBLE_PERIOD_MS = 150;   // темп перемикання частот -> ефект "виття", а не рівний тон
+    const unsigned long BEEP_PERIOD_MS = 200;   // тривалість фази "біп" і фази паузи
 }
 
 Buzzer::Buzzer(uint8_t pin_)
-    : pin(pin_), warble_timer(WARBLE_PERIOD_MS), active(false), high_tone(false) {}
+    : pin(pin_), beep_timer(BEEP_PERIOD_MS), active(false), sounding(false) {
+    pinMode(pin, OUTPUT);
+    digitalWrite(pin, LOW);
+}
 
 void Buzzer::alarmOn() {
-    if (active) return;   // вже сигналить -> не перезапускати частоту серед фази
+    if (active) return;   // вже сигналить -> не перезапускати фазу серед біпу
     active = true;
-    high_tone = false;
-    warble_timer.reset();
-    tone(pin, FREQ_LOW);
+    sounding = true;
+    beep_timer.reset();
+    digitalWrite(pin, HIGH);
 }
 
 void Buzzer::alarmOff() {
     if (!active) return;
     active = false;
-    noTone(pin);
+    digitalWrite(pin, LOW);
 }
 
 void Buzzer::update() {
     if (!active) return;
-    if (warble_timer.ready()) {
-        high_tone = !high_tone;
-        tone(pin, high_tone ? FREQ_HIGH : FREQ_LOW);
+    if (beep_timer.ready()) {
+        sounding = !sounding;
+        digitalWrite(pin, sounding ? HIGH : LOW);
     }
 }
